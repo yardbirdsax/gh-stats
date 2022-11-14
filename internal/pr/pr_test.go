@@ -7,6 +7,7 @@ import (
 	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/yardbirdsax/gh-stats/internal/result"
 )
 
 func TestMyReviews(t *testing.T) {
@@ -18,17 +19,18 @@ func TestMyReviews(t *testing.T) {
       "incomplete_results": false,
       "items": []map[string]interface{}{
         {
-          "created_at": "2022-11-01T20:20:20Z",
+          "created_at": "2022-11-02T20:20:20Z",
         },
         {
-          "created_at": "2022-11-02T20:20:20Z",
+          "created_at": "2022-11-01T20:20:20Z",
         },
       },
     },
   )
-  expectedResults := map[time.Time]int{
-    time.Date(2022,11,1, 0, 0, 0, 0, time.UTC): 1,
-    time.Date(2022,11,2, 0, 0, 0, 0, time.UTC): 1,
+  expectedResults := &result.Results{
+    {"created date", "count"},
+    {time.Date(2022,11,1, 0, 0, 0, 0, time.UTC),  1},
+    {time.Date(2022,11,2, 0, 0, 0, 0, time.UTC), 1},
   }
 
   actualResults, err := MyReviews()

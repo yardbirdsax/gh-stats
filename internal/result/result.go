@@ -21,8 +21,8 @@ func FromSlice(columnNames []interface{}, data [][]interface{}) (*Results, error
     if len(d) != columnCount {
       return &Results{}, fmt.Errorf("one or more rows contain a different number of columns than what are named")
     }
+		result = append(result, d)
   }
-  result = append(result, data...)
 
 	return &result, nil
 }

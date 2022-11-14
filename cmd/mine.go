@@ -5,7 +5,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/charmbracelet/glamour"
 	"github.com/spf13/cobra"
 	"github.com/yardbirdsax/gh-stats/internal/pr"
 )
@@ -21,7 +23,19 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(pr.MyReviews())
+		myReviews, err := pr.MyReviews()
+		if err != nil {
+			fmt.Printf("error: %v", err)
+			os.Exit(1)
+		}
+		r, _ := glamour.NewTermRenderer(
+			glamour.WithAutoStyle(),
+		)
+		out, err := r.Render(myReviews.AsMarkdownTable())
+		if err != nil {
+			fmt.Printf("error: %v", err)
+		}
+		fmt.Print(out)
 	},
 }
 
