@@ -28,17 +28,20 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		teamReviwes, err := pr.TeamReviews(*orgName, *teamName, startDate)
+		teamReviews, err := pr.TeamReviews(*orgName, *teamName, startDate, endDate, *groupByField)
 		if err != nil {
 			fmt.Printf("error: %v", err)
 			os.Exit(1)
 		}
-		r, _ := glamour.NewTermRenderer(
-			glamour.WithAutoStyle(),
-		)
-		out, err := r.Render(teamReviwes.AsMarkdownTable())
-		if err != nil {
-			fmt.Printf("error: %v", err)
+		var out string
+		if !*asCSV {
+			r, _ := glamour.NewTermRenderer()
+			out, err = r.Render(teamReviews.AsMarkdownTable())
+			if err != nil {
+				fmt.Printf("error: %v", err)
+			}
+		} else {
+			out = teamReviews.AsCSV()
 		}
 		fmt.Print(out)
 	},

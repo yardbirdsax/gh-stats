@@ -59,9 +59,9 @@ func TestAsCSV(t *testing.T) {
     },
   )
   require.NoError(t, err)
-	expectedOutput :=`id, user, created_date
-1, "someone", "2022-11-07T00:00:00.000Z"
-2, "someone-else", "2022-11-08T00:00:00.000Z"`
+	expectedOutput :=`id,user,created_date
+1,someone,2022-11-07 00:00:00 +0000 UTC
+2,someone-else,2022-11-08 00:00:00 +0000 UTC`
 	actualOutput := results.AsCSV()
 
 	assert.Equal(t, expectedOutput, actualOutput)

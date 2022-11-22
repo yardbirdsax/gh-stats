@@ -2,10 +2,8 @@ package pr
 
 import (
 	"fmt"
-	"log"
 	"net/url"
-
-	//"net/url"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -16,12 +14,18 @@ import (
 	"github.com/yardbirdsax/gh-stats/internal/result"
 )
 
-func MyReviews(startDate time.Time) (*result.Results, error) {
-	filter := fmt.Sprintf("is:pr reviewed-by:@me created:>=%s", startDate.Format("2006-01-02"))
-  return getIssueCount(filter)
+type groupByField string
+
+const (
+	groupByFieldCreatedAt groupByField = "CreatedAt"
+)
+
+func MyReviews(startDate time.Time, endDate time.Time, groupByField string) (*result.Results, error) {
+	filter := fmt.Sprintf("is:pr reviewed-by:@me created:%s..%s", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
+  return getIssueCount(filter, groupByField)
 }
 
-func TeamReviews(orgName string, teamName string, startDate time.Time) (*result.Results, error) {
+func TeamReviews(orgName string, teamName string, startDate time.Time, endDate time.Time, groupByField string) (*result.Results, error) {
 	client, err := getClient()
 	if err != nil {
 		return nil, err
@@ -37,8 +41,8 @@ func TeamReviews(orgName string, teamName string, startDate time.Time) (*result.
 		teamMembers = append(teamMembers, fmt.Sprintf("reviewed-by:%s", member.Login))
 	}
 
-	filter := fmt.Sprintf("is:pr %s user:%s created:>=%s", strings.Join(teamMembers, " "), orgName, startDate.Format("2006-01-02"))
-	return getIssueCount(filter)
+	filter := fmt.Sprintf("is:pr %s user:%s created:%s..%s", strings.Join(teamMembers, " "), orgName, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
+	return getIssueCount(filter, groupByField)
 }
 
 func getClient() (api.RESTClient, error) {
@@ -48,7 +52,7 @@ func getClient() (api.RESTClient, error) {
 	})
 }
 
-func getIssueCount(filter string) (*result.Results, error) {
+func getIssueCount(filter string, groupByField string) (*result.Results, error) {
 	var results *result.Results
 
 	client, err := getClient()
@@ -59,7 +63,6 @@ func getIssueCount(filter string) (*result.Results, error) {
 	responses := []issueSearchResponse{}
 	totalItemCount := 0
 	page := 1
-	log.Print(filter)
 	sanitizedFilter := url.QueryEscape(filter)
 	for {
 		response := issueSearchResponse{}
@@ -69,24 +72,33 @@ func getIssueCount(filter string) (*result.Results, error) {
 		}
 		responses = append(responses, response)
 		totalItemCount += len(response.Items)
-		log.Printf("current item count: %d, total count: %d", totalItemCount, response.TotalCount)
 		if totalItemCount >= response.TotalCount {
 			break
 		}
 		page++
 	}
-	log.Print(responses)
 
 	columnNames := []interface{}{
-		"created date",
+		strings.ToLower(groupByField),
 		"count",
 	}
 
-	mapData := make(map[time.Time]int)
+	mapData := make(map[interface{}]int)
 	for _, response := range responses {
 		for _, i := range response.Items {
-			roundedDate := i.CreatedAt.Truncate(24 * time.Hour)
-			mapData[roundedDate] += 1
+			field := reflect.ValueOf(i).FieldByName(groupByField)
+			if field == (reflect.Value{}) {
+				return results, fmt.Errorf("field with name '%s' does not exist", groupByField)
+			}
+			switch field.Type().String() {
+			case "string":
+				mapData[field.String()] += 1
+			case "time.Time":
+				roundedDate := field.Interface().(time.Time).Truncate(24 * time.Hour)
+				mapData[roundedDate] += 1
+			default:
+				return results, fmt.Errorf("type of group by field (%s) is not currently supported", field.Type().String())
+			}
 		}
 	}
 
@@ -95,9 +107,20 @@ func getIssueCount(filter string) (*result.Results, error) {
 		data = append(data, []interface{}{k, v})
 	}
 	sort.Slice(data, func(i, j int) bool {
-		firstValue := data[i][0].(time.Time)
-		secondValue := data[j][0].(time.Time)
-		return firstValue.Before(secondValue)
+		firstValue := data[i][0]
+		secondValue := data[j][0]
+		switch reflect.TypeOf(firstValue).Name() {
+		case "string":
+			firstValueString := firstValue.(string)
+			secondValueString := secondValue.(string)
+			return firstValueString < secondValueString
+		case "Time":
+			firstValueTime := firstValue.(time.Time)
+			secondValueTime := secondValue.(time.Time)
+			return firstValueTime.Before(secondValueTime)
+		default:
+			return false
+		}
 	})
 
 	results, err = result.FromSlice(columnNames, data)
@@ -112,6 +135,7 @@ type issueSearchResponse struct {
 
 type issueSearchItem struct {
 	CreatedAt time.Time `json:"created_at"`
+	RepositoryURL string `json:"repository_url"`
 }
 
 type teamMemberResponse []teamMember

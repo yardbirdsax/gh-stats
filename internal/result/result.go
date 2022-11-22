@@ -3,6 +3,8 @@ package result
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 )
@@ -30,6 +32,23 @@ func FromSlice(columnNames []interface{}, data [][]interface{}) (*Results, error
 // AsMarkdownTable renders tabular results as a Markdown table.
 func (r *Results) AsMarkdownTable() string {
 	var renderedString string
+
+	t := populateTable(r)
+
+	renderedString = t.RenderMarkdown()
+	return renderedString
+}
+
+func (r *Results) AsCSV() string {
+	var renderedString string
+
+	t := populateTable(r)
+
+	renderedString = t.RenderCSV()
+	return renderedString
+}
+
+func populateTable(r *Results) table.Writer {
 	t := table.NewWriter()
 
 	// Construct the table header
@@ -43,17 +62,15 @@ func (r *Results) AsMarkdownTable() string {
 	for _, result := range (*r)[1:] {
 		tableRow := table.Row{}
 		for _, colVal := range result {
-			tableRow = append(tableRow, colVal)
+			typeOf := reflect.TypeOf(colVal)
+			if typeOf.Name() == "string" {
+				sanitizedValue := strings.ReplaceAll(colVal.(string), "https://api.github.com/", "")
+				tableRow = append(tableRow, sanitizedValue)
+			} else {
+				tableRow = append(tableRow, colVal)
+			}
 		}
 		t.AppendRow(tableRow)
 	}
-
-	renderedString = t.RenderMarkdown()
-	return renderedString
-}
-
-func (r *Results) AsCSV() string {
-	var renderedString string
-
-	return renderedString
+	return t
 }

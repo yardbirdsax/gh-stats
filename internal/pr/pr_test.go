@@ -15,9 +15,11 @@ import (
 func TestMyReviews(t *testing.T) {
   defer gock.Off()
   gock.Observe(gock.DumpRequest)
-  expectedDateTime := time.Now()
-  expectedDateTimeString := expectedDateTime.Format("2006-01-02")
-  expectedParamEscaped := regexp.QuoteMeta(fmt.Sprintf("is:pr reviewed-by:@me created:>=%s", expectedDateTimeString))
+  expectedStartDateTime := time.Now().Add(-1 * 24 * time.Hour)
+  expectedStartDateTimeString := expectedStartDateTime.Format("2006-01-02")
+  expectedEndDateTime := time.Now()
+  expectedEndDateTimeString := expectedEndDateTime.Format("2006-01-02")
+  expectedParamEscaped := regexp.QuoteMeta(fmt.Sprintf("is:pr reviewed-by:@me created:%s..%s", expectedStartDateTimeString, expectedEndDateTimeString))
   gock.New("https://api.github.com").Get("search/issues").MatchParam("q", expectedParamEscaped).Reply(200).JSON(
     map[string]interface{}{
       "total_count": 2,
@@ -33,12 +35,12 @@ func TestMyReviews(t *testing.T) {
     },
   )
   expectedResults := &result.Results{
-    {"created date", "count"},
+    {"createdat", "count"},
     {time.Date(2022,11,1, 0, 0, 0, 0, time.UTC),  1},
     {time.Date(2022,11,2, 0, 0, 0, 0, time.UTC), 1},
   }
 
-  actualResults, err := MyReviews(expectedDateTime)
+  actualResults, err := MyReviews(expectedStartDateTime, expectedEndDateTime, "CreatedAt")
 
   require.NoError(t, err)
   assert.Equal(t, expectedResults, actualResults)
@@ -61,9 +63,11 @@ func TestTeamReviews(t *testing.T) {
       },
     },
   )
-  expectedDateTime := time.Now()
-  expectedDateTimeString := expectedDateTime.Format("2006-01-02")
-  expectedParamEscaped := regexp.QuoteMeta(fmt.Sprintf("is:pr reviewed-by:user1 reviewed-by:user2 user:org created:>=%s", expectedDateTimeString))
+  expectedStartDateTime := time.Now().Add(-1 * 24 * time.Hour)
+  expectedStartDateTimeString := expectedStartDateTime.Format("2006-01-02")
+  expectedEndDateTime := time.Now()
+  expectedEndDateTimeString := expectedEndDateTime.Format("2006-01-02")
+  expectedParamEscaped := regexp.QuoteMeta(fmt.Sprintf("is:pr reviewed-by:user1 reviewed-by:user2 user:org created:%s..%s", expectedStartDateTimeString, expectedEndDateTimeString))
   gock.New("https://api.github.com").Get("search/issues").MatchParam("q", expectedParamEscaped).MatchParam("page", "1").Reply(200).JSON(
     map[string]interface{}{
       "total_count": 4,
@@ -93,14 +97,14 @@ func TestTeamReviews(t *testing.T) {
     },
   )
   expectedResults := &result.Results{
-    {"created date", "count"},
+    {"createdat", "count"},
     {time.Date(2022,11,1, 0, 0, 0, 0, time.UTC),  1},
     {time.Date(2022,11,2, 0, 0, 0, 0, time.UTC), 1},
     {time.Date(2022,11,3, 0, 0, 0, 0, time.UTC), 1},
     {time.Date(2022,11,4, 0, 0, 0, 0, time.UTC), 1},
   }
 
-  actualResults, err := TeamReviews(expectedOrgName, expectedTeamname, expectedDateTime)
+  actualResults, err := TeamReviews(expectedOrgName, expectedTeamname, expectedStartDateTime, expectedEndDateTime, "CreatedAt")
 
   require.NoError(t, err)
   assert.Equal(t, expectedResults, actualResults)

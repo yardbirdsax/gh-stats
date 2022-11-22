@@ -13,6 +13,10 @@ import (
 var (
 	startDateString *string
 	startDate time.Time
+	endDateString *string
+	endDate time.Time
+	groupByField *string
+	asCSV *bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -25,6 +29,15 @@ var rootCmd = &cobra.Command{
 		formats := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02"}
 		for _, format := range formats {
 			startDate, err = time.Parse(format, *startDateString)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			return err
+		}
+		for _, format := range formats {
+			endDate, err = time.Parse(format, *endDateString)
 			if err == nil {
 				break
 			}
@@ -45,4 +58,8 @@ func Execute() {
 func init() {
 	defaultStartDate := time.Now().Add(-7 * 24 * time.Hour).Truncate(24 * time.Hour).Format("2006-01-02")
 	startDateString = rootCmd.PersistentFlags().String("start-date", defaultStartDate, "the date at which to start when qualifying searches")
+	defaultEndDate := time.Now().Truncate(24 * time.Hour).Format("2006-01-02")
+	endDateString = rootCmd.PersistentFlags().String("end-date", defaultEndDate, "the date at which to end when qualifying searches")
+	groupByField = rootCmd.PersistentFlags().String("group-by", "CreatedAt", "the field on which to group results")
+	asCSV = rootCmd.PersistentFlags().Bool("csv", false, "output results as CSV")
 }
