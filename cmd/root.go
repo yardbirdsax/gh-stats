@@ -1,16 +1,19 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
-
+var (
+	startDateString *string
+	startDate time.Time
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -32,15 +35,17 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gh-stats.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	defaultStartDate := time.Now().Add(-7 * 24 * time.Hour).Truncate(24 * time.Hour).Format("2006-01-02")
+	startDateString = rootCmd.PersistentFlags().String("start-date", defaultStartDate, "the date at which to start when qualifying searches")
+	formats := []string{time.RFC3339Nano, time.RFC3339, "2006-01-02"}
+	var err error
+	for _, format := range formats {
+		startDate, err = time.Parse(format, *startDateString)
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		panic("value entered for start time is not a parseable date/time string")
+	}
 }
-
-

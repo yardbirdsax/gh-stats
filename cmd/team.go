@@ -12,9 +12,14 @@ import (
 	"github.com/yardbirdsax/gh-stats/internal/pr"
 )
 
-// mineCmd represents the mine command
-var mineCmd = &cobra.Command{
-	Use:   "mine",
+var (
+	teamName *string
+	orgName  *string
+)
+
+// teamCmd represents the mine command
+var teamCmd = &cobra.Command{
+	Use:   "team",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -23,7 +28,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		myReviews, err := pr.MyReviews(startDate)
+		teamReviwes, err := pr.TeamReviews(*orgName, *teamName, startDate)
 		if err != nil {
 			fmt.Printf("error: %v", err)
 			os.Exit(1)
@@ -31,7 +36,7 @@ to quickly create a Cobra application.`,
 		r, _ := glamour.NewTermRenderer(
 			glamour.WithAutoStyle(),
 		)
-		out, err := r.Render(myReviews.AsMarkdownTable())
+		out, err := r.Render(teamReviwes.AsMarkdownTable())
 		if err != nil {
 			fmt.Printf("error: %v", err)
 		}
@@ -40,15 +45,7 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	prCmd.AddCommand(mineCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// mineCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// mineCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	prCmd.AddCommand(teamCmd)
+	orgName = teamCmd.PersistentFlags().String("org-name", "", "The name of the organization that the team belongs to.")
+	teamName = teamCmd.PersistentFlags().String("name", "", "The name of the team to view PR statistics for.")
 }

@@ -2,7 +2,10 @@ package pr
 
 import (
 	"fmt"
-  //"net/url"
+	"log"
+	"net/url"
+
+	//"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -13,19 +16,19 @@ import (
 	"github.com/yardbirdsax/gh-stats/internal/result"
 )
 
-func MyReviews() (*result.Results, error) {
-	filter := "is:pr reviewed-by:@me"
+func MyReviews(startDate time.Time) (*result.Results, error) {
+	filter := fmt.Sprintf("is:pr reviewed-by:@me created:>=%s", startDate.Format("2006-01-02"))
   return getIssueCount(filter)
 }
 
-func TeamReviews(orgName string, teamName string) (*result.Results, error) {
+func TeamReviews(orgName string, teamName string, startDate time.Time) (*result.Results, error) {
 	client, err := getClient()
 	if err != nil {
 		return nil, err
 	}
 
 	teamResponse := &teamMemberResponse{}
-	err = client.Get(fmt.Sprintf("/orgs/%s/teams/%s/members", orgName, teamName), teamResponse)
+	err = client.Get(fmt.Sprintf("orgs/%s/teams/%s/members", orgName, teamName), teamResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +37,7 @@ func TeamReviews(orgName string, teamName string) (*result.Results, error) {
 		teamMembers = append(teamMembers, fmt.Sprintf("reviewed-by:%s", member.Login))
 	}
 
-	filter := fmt.Sprintf("is:pr (%s) user:%s", strings.Join(teamMembers, " "), orgName)
+	filter := fmt.Sprintf("is:pr %s user:%s created:>=%s", strings.Join(teamMembers, " "), orgName, startDate)
 	return getIssueCount(filter)
 }
 
@@ -53,11 +56,25 @@ func getIssueCount(filter string) (*result.Results, error) {
 		return results, err
 	}
 
-	response := issueSearchResponse{}
-	err = client.Get(fmt.Sprintf("search/issues?q=%s", filter), &response)
-	if err != nil {
-		return results, err
+	responses := []issueSearchResponse{}
+	totalItemCount := 0
+	page := 1
+	sanitizedFilter := url.QueryEscape(filter)
+	for {
+		response := issueSearchResponse{}
+		err = client.Get(fmt.Sprintf("search/issues?q=%s&page=%d&per_page=100", sanitizedFilter, page), &response)
+		if err != nil {
+			return results, err
+		}
+		responses = append(responses, response)
+		totalItemCount += len(response.Items)
+		log.Printf("current item count: %d, total count: %d", totalItemCount, response.TotalCount)
+		if totalItemCount >= response.TotalCount {
+			break
+		}
+		page++
 	}
+	log.Print(responses)
 
 	columnNames := []interface{}{
 		"created date",
@@ -65,9 +82,11 @@ func getIssueCount(filter string) (*result.Results, error) {
 	}
 
 	mapData := make(map[time.Time]int)
-	for _, i := range response.Items {
-		roundedDate := i.CreatedAt.Truncate(24 * time.Hour)
-		mapData[roundedDate] += 1
+	for _, response := range responses {
+		for _, i := range response.Items {
+			roundedDate := i.CreatedAt.Truncate(24 * time.Hour)
+			mapData[roundedDate] += 1
+		}
 	}
 
 	data := make([][]interface{}, 0, len(mapData))
