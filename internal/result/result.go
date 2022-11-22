@@ -51,3 +51,9 @@ func (r *Results) AsMarkdownTable() string {
 	renderedString = t.RenderMarkdown()
 	return renderedString
 }
+
+func (r *Results) AsCSV() string {
+	var renderedString string
+
+	return renderedString
+}

@@ -38,6 +38,35 @@ func TestAsMarkdownTable(t *testing.T) {
 	assert.Equal(t, expectedOuput, actualOutput)
 }
 
+func TestAsCSV(t *testing.T) {
+	results, err := FromSlice(
+    []interface{}{
+      "id",
+      "user",
+      "created_date",
+    },
+    [][]interface{}{
+      {
+        1,
+        "someone",
+        time.Date(2022, 11, 07, 0, 0, 0, 0, time.UTC),
+      },
+      {
+        2,
+        "someone-else",
+        time.Date(2022, 11, 8, 0, 0, 0, 0, time.UTC),
+      },
+    },
+  )
+  require.NoError(t, err)
+	expectedOutput :=`id, user, created_date
+1, "someone", "2022-11-07T00:00:00.000Z"
+2, "someone-else", "2022-11-08T00:00:00.000Z"`
+	actualOutput := results.AsCSV()
+
+	assert.Equal(t, expectedOutput, actualOutput)
+}
+
 func TestFromSlice(t *testing.T) {
 	tests := []struct {
 		name           string

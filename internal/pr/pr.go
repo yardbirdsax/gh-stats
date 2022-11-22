@@ -37,7 +37,7 @@ func TeamReviews(orgName string, teamName string, startDate time.Time) (*result.
 		teamMembers = append(teamMembers, fmt.Sprintf("reviewed-by:%s", member.Login))
 	}
 
-	filter := fmt.Sprintf("is:pr %s user:%s created:>=%s", strings.Join(teamMembers, " "), orgName, startDate)
+	filter := fmt.Sprintf("is:pr %s user:%s created:>=%s", strings.Join(teamMembers, " "), orgName, startDate.Format("2006-01-02"))
 	return getIssueCount(filter)
 }
 
@@ -59,6 +59,7 @@ func getIssueCount(filter string) (*result.Results, error) {
 	responses := []issueSearchResponse{}
 	totalItemCount := 0
 	page := 1
+	log.Print(filter)
 	sanitizedFilter := url.QueryEscape(filter)
 	for {
 		response := issueSearchResponse{}
