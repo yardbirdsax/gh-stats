@@ -14,14 +14,8 @@ import (
 
 // mineCmd represents the mine command
 var mineCmd = &cobra.Command{
-	Use:   "mine",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "my-reviews",
+	Short: "PRs you've reviewed",
 	Run: func(cmd *cobra.Command, args []string) {
 		myReviews, err := pr.MyReviews(startDate, endDate, *groupByField)
 		if err != nil {
