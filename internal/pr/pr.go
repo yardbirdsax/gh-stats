@@ -14,12 +14,6 @@ import (
 	"github.com/yardbirdsax/gh-stats/internal/result"
 )
 
-type groupByField string
-
-const (
-	groupByFieldCreatedAt groupByField = "CreatedAt"
-)
-
 func MyReviews(startDate time.Time, endDate time.Time, groupByField string) (*result.Results, error) {
 	filter := fmt.Sprintf("is:pr reviewed-by:@me created:%s..%s", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
   return getIssueCount(filter, groupByField)
