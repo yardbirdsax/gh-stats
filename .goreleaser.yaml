@@ -1,0 +1,22 @@
+archives:
+  - name_template: "gh-stats-{{ .Os }}-{{ .Arch }}"
+    format: binary
+before:
+  hooks:
+    - "golangci-lint run"
+    - "go test -coverprofile=coverage.out ./..."
+builds:
+  - goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    binary: gh-stats
+    main: main.go
+    env:
+      - CGO_ENABLED=0
+release:
+  mode: keep-existing
+snapshot:
+  name_template: "{{ .Version }}-next"
